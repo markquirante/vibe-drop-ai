@@ -14,3 +14,7 @@ __pycache__/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Local project notes
+docs/PROJECT_CONTEXT.md
+docs/AI_ROADMAP.md
