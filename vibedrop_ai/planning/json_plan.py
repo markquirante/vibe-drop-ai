@@ -63,3 +63,40 @@ def load_chord_midi_plan(path: Path) -> ChordMidiPlan:
         time_signature_denominator=time_signature.get("denominator", 4),
         tracks=tracks,
     )
+
+
+def chord_midi_plan_to_dict(plan: ChordMidiPlan) -> dict:
+    return {
+        "key": plan.key,
+        "scale": plan.scale,
+        "tempo_bpm": plan.tempo_bpm,
+        "bars": plan.bars,
+        "style": plan.style,
+        "time_signature": {
+            "numerator": plan.time_signature_numerator,
+            "denominator": plan.time_signature_denominator,
+        },
+        "tracks": [
+            {
+                "name": track.name,
+                "channel": track.channel,
+                "events": [
+                    {
+                        "pitch": event.pitch,
+                        "start_beat": event.start_beat,
+                        "duration_beats": event.duration_beats,
+                        "velocity": event.velocity,
+                        "channel": event.channel,
+                        "chord_label": event.chord_label,
+                    }
+                    for event in track.events
+                ],
+            }
+            for track in plan.tracks
+        ],
+    }
+
+
+def save_chord_midi_plan(path: Path, plan: ChordMidiPlan) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(chord_midi_plan_to_dict(plan), indent=2) + "\n")

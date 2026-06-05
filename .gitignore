@@ -17,4 +17,5 @@ Thumbs.db
 
 # Generated MIDI outputs
 output/*.mid
+output/*.json
 !output/.gitkeep

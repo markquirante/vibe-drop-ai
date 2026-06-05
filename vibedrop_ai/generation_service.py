@@ -5,6 +5,11 @@ from mido import MidiFile
 from vibedrop_ai.config import TICKS_PER_BEAT
 from vibedrop_ai.domain import ChordMidiPlan, GeneratedArtifact
 from vibedrop_ai.music.midi_io import write_chord_midi_plan
+from vibedrop_ai.planning.chord_event_planner import (
+    ChordEventPlanner,
+    ChordEventPlannerRequest,
+)
+from vibedrop_ai.planning.json_plan import save_chord_midi_plan
 from vibedrop_ai.validation.chord_midi import validate_chord_midi_plan
 
 
@@ -28,3 +33,18 @@ def generate_from_plan(plan: ChordMidiPlan, output_path: Path) -> GeneratedArtif
         path=output_path,
         plan=plan,
     )
+
+
+def generate_from_prompt(
+    request: ChordEventPlannerRequest,
+    output_path: Path,
+    planner: ChordEventPlanner,
+    plan_output_path: Path | None = None,
+) -> GeneratedArtifact:
+    plan = planner.plan_from_prompt(request)
+    artifact = generate_from_plan(plan, output_path)
+
+    if plan_output_path is not None:
+        save_chord_midi_plan(plan_output_path, plan)
+
+    return artifact
