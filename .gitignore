@@ -18,3 +18,7 @@ Thumbs.db
 # Local project notes
 docs/PROJECT_CONTEXT.md
 docs/AI_ROADMAP.md
+
+# Generated MIDI outputs
+output/*.mid
+!output/.gitkeep

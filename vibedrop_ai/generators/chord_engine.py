@@ -1,13 +1,12 @@
 import random
 from dataclasses import dataclass
-from typing import List
 from vibedrop_ai.config import ROOT_NOTE
 
 @dataclass
 class ChordEvent:
     start_bar: float
     duration_bars: float
-    notes: List[int]
+    notes: list[int]
 
 # chords
 def _cm7() -> list[int]:
@@ -42,12 +41,16 @@ CHORD_POOL = [
 ]
 
 # generate chord progression
-def generate_cm_chord_prog(bars: int) -> List[ChordEvent]:
+def generate_cm_chord_prog(
+    bars: int,
+    rng: random.Random | None = None,
+) -> list[ChordEvent]:
+    if rng is None:
+        rng = random.Random()
 
     events: list[ChordEvent] = []
     for bar_index in range(bars):
-        chord_fn = random.choice(CHORD_POOL)
-        chord_notes = chord_fn
+        chord_notes = rng.choice(CHORD_POOL)
 
         events.append(
             ChordEvent(

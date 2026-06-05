@@ -1,3 +1,5 @@
-# Will be filled with project dependencies
-
+# Runtime dependencies
 mido
+
+# Development dependencies
+pytest

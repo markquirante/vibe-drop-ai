@@ -1,0 +1,18 @@
+{
+  "key": "C",
+  "scale": "minor",
+  "tempo_bpm": 85,
+  "bars": 4,
+  "style": "lofi",
+  "seed": 321,
+  "tracks": [
+    {
+      "role": "chords",
+      "channel": 0
+    },
+    {
+      "role": "melody",
+      "channel": 1
+    }
+  ]
+}
