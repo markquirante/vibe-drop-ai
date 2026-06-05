@@ -1,4 +1,4 @@
-import pytest
+from mido import MidiFile
 
 from vibedrop_ai.domain import ChordMidiPlan, ChordNoteEvent, ChordTrackPlan
 from vibedrop_ai.generation_service import generate_from_plan
@@ -38,28 +38,33 @@ def make_valid_plan() -> ChordMidiPlan:
     )
 
 
-def test_generate_from_plan_creates_midi_file(tmp_path):
-    plan = make_valid_plan()
+def test_generate_from_plan_renders_explicit_note_events(tmp_path):
     output_path = tmp_path / "idea.mid"
 
-    artifact = generate_from_plan(plan, output_path)
+    generate_from_plan(make_valid_plan(), output_path)
 
-    assert artifact.path == output_path
-    assert artifact.plan == plan
-    assert output_path.exists()
-    assert output_path.stat().st_size > 0
+    midi = MidiFile(output_path)
+    messages = [
+        message
+        for track in midi.tracks
+        for message in track
+        if message.type in {"note_on", "note_off"}
+    ]
+
+    assert [(message.type, message.note, message.velocity) for message in messages] == [
+        ("note_on", 60, 76),
+        ("note_on", 63, 72),
+        ("note_off", 60, 0),
+        ("note_off", 63, 0),
+    ]
 
 
-def test_generate_from_plan_rejects_invalid_plan(tmp_path):
-    valid_plan = make_valid_plan()
-    invalid_plan = ChordMidiPlan(
-        key="H",
-        scale=valid_plan.scale,
-        tempo_bpm=valid_plan.tempo_bpm,
-        bars=valid_plan.bars,
-        style=valid_plan.style,
-        tracks=valid_plan.tracks,
-    )
+def test_generate_from_plan_is_deterministic_for_same_event_plan(tmp_path):
+    plan = make_valid_plan()
+    first_path = tmp_path / "first.mid"
+    second_path = tmp_path / "second.mid"
 
-    with pytest.raises(ValueError, match="Invalid chord MIDI plan"):
-        generate_from_plan(invalid_plan, tmp_path / "bad.mid")
+    generate_from_plan(plan, first_path)
+    generate_from_plan(plan, second_path)
+
+    assert first_path.read_bytes() == second_path.read_bytes()

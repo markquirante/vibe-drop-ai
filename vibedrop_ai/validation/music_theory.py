@@ -3,7 +3,7 @@ from vibedrop_ai.domain import CompositionPlan, ValidationResult, ValidationIssu
 SUPPORTED_KEYS = {"C", "Db", "D", "Eb", "E", "F", "Gb", "G", "Ab", "A", "Bb", "B"}
 SUPPORTED_SCALES = {"major", "minor"}
 SUPPORTED_STYLES = {"lofi", "rnb"}
-SUPPORTED_TRACK_ROLES = {"chords", "melody"}
+SUPPORTED_TRACK_ROLES = {"chords"}
 
 MIN_TEMPO_BPM = 40
 MAX_TEMPO_BPM = 220

@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-from mido import MidiFile, MidiTrack, Message
+from mido import MidiFile, MidiTrack, Message, MetaMessage, bpm2tempo
 from vibedrop_ai.generators.chord_engine import ChordEvent
 from vibedrop_ai.config import TimeSignature
+from vibedrop_ai.domain import ChordMidiPlan, ChordTrackPlan
 
 def beats_to_ticks(beats, ts: TimeSignature, ticks_per_quarter):
     quarter_notes_per_beat = 4 / ts.denominator
@@ -11,6 +11,95 @@ def beats_to_ticks(beats, ts: TimeSignature, ticks_per_quarter):
 def bars_to_ticks(bars, ts: TimeSignature, ticks_per_quarter):
     total_beats = bars * ts.numerator
     return beats_to_ticks(total_beats, ts, ticks_per_quarter)
+
+
+def write_chord_midi_plan(
+    mid: MidiFile,
+    plan: ChordMidiPlan,
+    ticks_per_quarter: int,
+) -> None:
+    ts = TimeSignature(
+        numerator=plan.time_signature_numerator,
+        denominator=plan.time_signature_denominator,
+    )
+
+    for index, track_plan in enumerate(plan.tracks):
+        write_chord_note_track(
+            mid=mid,
+            track_plan=track_plan,
+            ts=ts,
+            ticks_per_quarter=ticks_per_quarter,
+            tempo_bpm=plan.tempo_bpm if index == 0 else None,
+        )
+
+
+def write_chord_note_track(
+    mid: MidiFile,
+    track_plan: ChordTrackPlan,
+    ts: TimeSignature,
+    ticks_per_quarter: int,
+    tempo_bpm: int | None = None,
+) -> None:
+    track = MidiTrack()
+    mid.tracks.append(track)
+
+    track.append(MetaMessage("track_name", name=track_plan.name, time=0))
+
+    if tempo_bpm is not None:
+        track.append(MetaMessage("set_tempo", tempo=bpm2tempo(tempo_bpm), time=0))
+        track.append(
+            MetaMessage(
+                "time_signature",
+                numerator=ts.numerator,
+                denominator=ts.denominator,
+                time=0,
+            )
+        )
+
+    timed_messages = []
+    for index, event in enumerate(track_plan.events):
+        start_tick = beats_to_ticks(event.start_beat, ts, ticks_per_quarter)
+        duration_ticks = beats_to_ticks(event.duration_beats, ts, ticks_per_quarter)
+        end_tick = start_tick + duration_ticks
+
+        timed_messages.append(
+            (
+                start_tick,
+                1,
+                event.pitch,
+                event.channel,
+                index,
+                Message(
+                    "note_on",
+                    note=event.pitch,
+                    velocity=event.velocity,
+                    channel=event.channel,
+                    time=0,
+                ),
+            )
+        )
+        timed_messages.append(
+            (
+                end_tick,
+                0,
+                event.pitch,
+                event.channel,
+                index,
+                Message(
+                    "note_off",
+                    note=event.pitch,
+                    velocity=0,
+                    channel=event.channel,
+                    time=0,
+                ),
+            )
+        )
+
+    last_tick = 0
+    for tick, _, _, _, _, message in sorted(timed_messages):
+        message.time = tick - last_tick
+        track.append(message)
+        last_tick = tick
 
 
 def write_chord_track(

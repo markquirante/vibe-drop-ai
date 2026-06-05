@@ -12,7 +12,6 @@ def make_valid_plan(**overrides) -> CompositionPlan:
         "seed": 123,
         "tracks": [
             TrackSpec(role="chords", channel=0),
-            TrackSpec(role="melody", channel=1),
         ],
     }
     values.update(overrides)
@@ -72,7 +71,7 @@ def test_duplicate_midi_channel_fails():
     plan = make_valid_plan(
         tracks=[
             TrackSpec(role="chords", channel=0),
-            TrackSpec(role="melody", channel=0),
+            TrackSpec(role="pad", channel=0),
         ]
     )
 
@@ -91,3 +90,13 @@ def test_invalid_midi_channel_fails():
 
 def test_negative_seed_fails():
     assert_has_error_field(make_valid_plan(seed=-1), "seed")
+
+
+def test_melody_track_role_fails():
+    plan = make_valid_plan(
+        tracks=[
+            TrackSpec(role="melody", channel=1),
+        ]
+    )
+
+    assert_has_error_field(plan, "tracks[0].role")

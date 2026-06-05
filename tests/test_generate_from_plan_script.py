@@ -12,12 +12,29 @@ def test_generate_from_plan_script_creates_midi_file(tmp_path):
                 "key": "C",
                 "scale": "minor",
                 "tempo_bpm": 85,
-                "bars": 4,
+                "bars": 1,
                 "style": "lofi",
-                "seed": 123,
                 "tracks": [
-                    {"role": "chords", "channel": 0},
-                    {"role": "melody", "channel": 1},
+                    {
+                        "name": "Lo-fi Rhodes Chords",
+                        "channel": 0,
+                        "events": [
+                            {
+                                "pitch": 60,
+                                "start_beat": 0,
+                                "duration_beats": 4,
+                                "velocity": 76,
+                                "chord_label": "Cm7",
+                            },
+                            {
+                                "pitch": 63,
+                                "start_beat": 0,
+                                "duration_beats": 4,
+                                "velocity": 72,
+                                "chord_label": "Cm7",
+                            },
+                        ],
+                    }
                 ],
             }
         )
