@@ -8,6 +8,7 @@ venv/
 # Python cache
 __pycache__/
 .pytest-tmp/
+.pytest_cache/
 *.pyc
 *.pyo
 *.pyd
