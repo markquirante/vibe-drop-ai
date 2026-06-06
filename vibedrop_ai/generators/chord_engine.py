@@ -1,7 +1,9 @@
 import random
 from dataclasses import dataclass
-from vibedrop_ai.config import ROOT_NOTE
 
+ROOT_NOTE = 60
+
+# keep for non-AI chord gen
 @dataclass
 class ChordEvent:
     start_bar: float

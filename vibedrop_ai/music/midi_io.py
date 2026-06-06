@@ -1,7 +1,16 @@
 from mido import MidiFile, MidiTrack, Message, MetaMessage, bpm2tempo
 from vibedrop_ai.generators.chord_engine import ChordEvent
-from vibedrop_ai.config import TimeSignature
 from vibedrop_ai.domain import ChordMidiPlan, ChordTrackPlan
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class TimeSignature:
+    numerator: int
+    denominator: int
+
+
+TICKS_PER_BEAT = 480
 
 def beats_to_ticks(beats, ts: TimeSignature, ticks_per_quarter):
     quarter_notes_per_beat = 4 / ts.denominator

@@ -2,9 +2,8 @@ from pathlib import Path
 
 from mido import MidiFile
 
-from vibedrop_ai.config import TICKS_PER_BEAT
 from vibedrop_ai.domain import ChordMidiPlan, GeneratedArtifact
-from vibedrop_ai.music.midi_io import write_chord_midi_plan
+from vibedrop_ai.music.midi_io import TICKS_PER_BEAT, write_chord_midi_plan
 from vibedrop_ai.planning.chord_event_planner import (
     ChordEventPlanner,
     ChordEventPlannerRequest,

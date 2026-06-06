@@ -28,21 +28,6 @@ class ChordMidiPlan:
     time_signature_denominator: int = 4
 
 @dataclass(frozen=True)
-class TrackSpec:
-    role: str
-    channel: int = 0
-
-@dataclass(frozen=True)
-class CompositionPlan:
-    key: str
-    scale: str
-    tempo_bpm: int
-    bars: int
-    style: str
-    tracks: list[TrackSpec]
-    seed: int | None = None
-
-@dataclass(frozen=True)
 class ValidationIssue:
     field: str
     message: str
@@ -56,4 +41,4 @@ class ValidationResult:
 @dataclass(frozen=True)
 class GeneratedArtifact:
     path: Path
-    plan: CompositionPlan | ChordMidiPlan
+    plan: ChordMidiPlan
