@@ -5,7 +5,7 @@
 Vibe Drop AI should evolve into an AI-assisted producer asset generator with two focused outputs:
 
 1. AI-authored chord MIDI files.
-2. AI-generated finished drum-loop audio packages with a master loop and separated stems.
+2. AI-authored drum MIDI loop packages with separate files for kick, snare, hi-hats, and percussion.
 
 The app should not generate melodies.
 
@@ -26,11 +26,14 @@ For drums:
 
 ```text
 User prompt
-  -> Lyria 3 drum-loop prompt via Gemini API generateContent
-  -> generated drum-loop audio
-  -> validation and packaging
-  -> master.wav plus stems
+  -> Gemini drum event planner
+  -> structured drum MIDI event plan
+  -> validation and repair
+  -> deterministic MIDI file writer
+  -> kick.mid, snare.mid, hats.mid, percussion.mid
 ```
+
+Lyria 3 exists, but it should not be the first implementation path because it is not currently available through the free-tier API.
 
 ## Product Scope
 
@@ -39,10 +42,10 @@ User prompt
 - AI-authored chord MIDI event generation.
 - Deterministic writing of valid `.mid` files from AI-authored events.
 - Validation for MIDI note range, timing, duration, velocity, channel, bar length, and optional music-theory constraints.
-- AI-generated finished drum loops as audio.
-- Lyria 3 through Gemini API `generateContent` as the first external audio-generation path for drum loops only.
-- Drum-loop master export.
-- Drum-loop stem export:
+- AI-authored drum MIDI event generation.
+- Deterministic writing of valid `.mid` drum files from AI-authored events.
+- Gemini prompt-to-structured-plan request flow for drum MIDI, borrowing from the chord generation implementation.
+- Drum MIDI package export:
   - kick
   - snare
   - hi-hats
@@ -58,6 +61,7 @@ User prompt
 - Raw `.mid` binary generation by an LLM.
 - Full song arrangement generation.
 - Vocal generation.
+- Using Lyria 3 drum audio generation as a near-term implementation path.
 - Lyria 3 usage for non-drum full songs, vocals, melodies, or general music arrangement.
 - Full mixing/mastering suites.
 - Real-time plugin generation.
@@ -125,22 +129,22 @@ Retire or change:
 - `MidiRenderContext`
   - ticks per beat, time signature, tempo, output path, track name.
 
-### Drum Audio
+### Drum MIDI
 
 - `DrumLoopRequest`
-  - prompt, style, BPM, bars, swing, energy, density, requested stems, Lyria model.
+  - prompt, style, BPM, bars, swing, energy, density, requested drum roles.
 
-- `DrumLoopPlan`
-  - planned drum elements, loop length, stem roles, groove notes, generation strategy, provider metadata.
+- `DrumMidiPlan`
+  - tempo, bars, time signature, style, requested roles, and role-specific drum hit events.
 
-- `DrumStemSpec`
-  - stem name, role, audio source/generation source, output path.
+- `DrumHitEvent`
+  - role, MIDI pitch, start beat, duration beats, velocity, channel, optional label.
 
-- `DrumLoopPackage`
-  - master audio path, stem paths, metadata, BPM, bars, sample rate.
+- `DrumTrackPlan`
+  - one drum role track containing hit events and MIDI channel settings.
 
-- `AudioRenderContext`
-  - sample rate, bit depth, channels, output format, loop length, normalization policy.
+- `DrumMidiPackage`
+  - generated MIDI file paths, metadata, BPM, bars, time signature, ticks per beat.
 
 ## Phase 1: AI Chord MIDI Event Planner
 
@@ -286,100 +290,102 @@ Improve the quality and safety of AI-authored chord event plans with stronger va
 - Optional repair can turn common invalid plans into valid MIDI.
 - The rendered MIDI remains based on AI-authored notes, not rule-generated chords.
 
-## Phase 3: AI Drum Loop Audio Generator
+## Phase 3: AI Drum MIDI Loop Generator
 
 ### Objective
 
-Add AI-assisted generation of finished drum loops as audio files. The first provider path should use Lyria 3 through Gemini API `generateContent`, scoped exclusively to drum-loop audio. Each loop should include a master file and separated stems where feasible.
+Add AI-assisted generation of drum loops as MIDI files. This should closely follow the chord generation implementation: user prompt -> Gemini model -> validated event plan -> deterministic `mido` writer.
+
+The first scope is four generated MIDI files: kick, snare, hi-hats, and percussion.
 
 ### Deliverables
 
-- Drum-loop request schema.
-- Drum-loop plan or generation result schema.
-- Lyria 3 `generateContent` client for drum-loop prompts.
+- Drum MIDI request schema.
+- Drum MIDI plan or generation result schema.
+- Gemini structured-output request flow for drum-loop MIDI prompts.
 - Provider metadata recording:
   - model ID
   - prompt
-  - generated audio format
+  - generated plan schema version
   - generation timestamp
-- Stem roles:
+- Drum roles:
   - kick
   - snare
   - hats
   - percussion
   - optional fills
-- Drum-loop package:
-  - `master.wav`
-  - `kick.wav`
-  - `snare.wav`
-  - `hats.wav`
-  - `percussion.wav`
+- Drum MIDI package:
+  - `kick.mid`
+  - `snare.mid`
+  - `hats.mid`
+  - `percussion.mid`
   - `metadata.json`
-- Stem/master alignment validation.
+- Cross-file alignment validation.
 - Loop-length validation.
 
 ### Required Architecture Changes
 
-- Add an audio package layer separate from MIDI.
-- Add drum-specific validation.
-- Use Lyria 3 as the first AI-audio-model provider for drum-loop master generation.
-- Keep stem handling separate from Lyria 3 master generation because provider output may not include isolated stems.
-- Preserve a future hybrid option for stem generation, separation, or sample-based reconstruction.
-- Track loop duration in bars, beats, seconds, and samples.
+- Add drum-specific MIDI planning, validation, and rendering.
+- Reuse the chord generation request/validation/render boundary where possible.
+- Keep drum generation separate from chord generation, but share common MIDI event validation helpers if useful.
+- Write multiple MIDI files from one validated drum plan.
+- Track loop duration in bars, beats, and ticks.
+- Defer Lyria 3 and finished audio packaging until a practical API path exists.
 
 ### Suggested Modules/Files
 
 - `vibedrop_ai/drums/domain.py`
 - `vibedrop_ai/drums/planner.py`
-- `vibedrop_ai/drums/lyria_client.py`
-- `vibedrop_ai/audio/render.py`
-- `vibedrop_ai/audio/stems.py`
-- `vibedrop_ai/validation/drums.py`
-- `vibedrop_ai/scripts/generate_drum_loop.py`
-- `tests/test_drum_loop_package.py`
+- `vibedrop_ai/drums/midi_io.py`
+- `vibedrop_ai/validation/drum_midi.py`
+- `vibedrop_ai/scripts/generate_drums_from_plan.py`
+- `vibedrop_ai/scripts/generate_drums_from_prompt.py`
+- `plans/drums_basic_loop.json`
+- `tests/test_drum_midi_validation.py`
+- `tests/test_drum_midi_rendering.py`
 
 ### AI Concepts Learned
 
-- Prompt-to-audio asset planning.
-- Gemini API media generation through Lyria 3.
-- Stem-aware generation.
-- Audio generation constraints.
+- Prompt-to-symbolic drum planning.
+- Structured LLM output for rhythmic events.
+- Multi-file event generation.
+- Drum groove constraints.
 - AI-assisted production workflow design.
 
 ### Software Engineering Concepts Learned
 
 - Multi-file artifact packaging.
-- Audio metadata.
-- Stem alignment.
+- MIDI metadata.
+- Cross-file loop alignment.
 - File conventions.
 - Validation across related files.
 
 ### Risks
 
-- Finished audio is much harder than MIDI.
-- Lyria 3 may return a finished audio clip rather than separated drum stems.
-- Lyria 3 output format may need local conversion before the package can expose `.wav` files.
-- Generating master first and separating stems is harder than generating stems first and mixing a master.
-- Sample licensing and provenance matter.
+- AI may produce invalid drum timing, velocities, or note mappings.
+- Separate drum files may drift if loop metadata is not centralized.
+- Drum maps need to be explicit so DAWs and samplers interpret roles predictably.
+- Humanized timing can break loop boundaries if validation is weak.
+- Lyria 3 audio remains deferred because it is not available through the free-tier API.
 
 ### Success Criteria
 
-- A drum-loop package can be generated with a master and stems.
-- All stems match the master length.
+- A drum MIDI package can be generated with kick, snare, hats, and percussion files.
+- All generated drum MIDI files share the same BPM, bar count, time signature, ticks-per-beat, and loop boundary.
 - The package can be dragged into a DAW.
-- Metadata records BPM, bars, style, stem paths, Lyria model ID, prompt, and source audio format.
+- Metadata records BPM, bars, style, MIDI file paths, Gemini model ID, prompt, and schema version.
 
 ## Phase 4: Dataset Mode For Chords And Drums
 
 ### Objective
 
-Prepare the project for future learning or retrieval by importing chord MIDI event data and registering drum-loop audio/stem metadata.
+Prepare the project for future learning or retrieval by importing chord MIDI event data and registering drum MIDI loop metadata.
 
 ### Deliverables
 
 - Chord MIDI event extraction.
-- Drum-loop metadata ingestion.
-- Stem package metadata ingestion.
+- Drum MIDI event extraction.
+- Drum MIDI package metadata ingestion.
 - Dataset example schemas.
 - Provenance and licensing fields.
 - Dataset summaries.
@@ -393,7 +399,7 @@ Prepare the project for future learning or retrieval by importing chord MIDI eve
 ### Suggested Modules/Files
 
 - `vibedrop_ai/datasets/chord_midi.py`
-- `vibedrop_ai/datasets/drum_audio.py`
+- `vibedrop_ai/datasets/drum_midi.py`
 - `vibedrop_ai/datasets/schemas.py`
 - `vibedrop_ai/scripts/import_dataset.py`
 - `tests/test_chord_dataset_import.py`
@@ -402,26 +408,26 @@ Prepare the project for future learning or retrieval by importing chord MIDI eve
 ### Success Criteria
 
 - Project-generated chord MIDI can be parsed back into event data.
-- Drum-loop stem packages can be registered with metadata.
+- Drum MIDI packages can be parsed back into event data.
 - Dataset entries are inspectable and validated.
 
 ## Phase 5: Retrieval Or Small ML Model
 
 ### Objective
 
-Use the dataset layer to support retrieval or small ML models for chord MIDI event plans and drum-loop assets.
+Use the dataset layer to support retrieval or small ML models for chord MIDI event plans and drum MIDI loop assets.
 
 ### Deliverables
 
 - Chord event tokenization or embedding.
-- Drum-loop metadata/features.
+- Drum MIDI event tokenization or embedding.
 - Retrieval baseline.
 - Optional small model after enough data exists.
 - Evaluation metrics.
 
 ### Success Criteria
 
-- Retrieval or model output produces valid chord event plans or drum-loop plans.
+- Retrieval or model output produces valid chord event plans or drum MIDI plans.
 - Outputs pass the same validators as AI planner output.
 - The ML layer remains optional.
 
@@ -432,6 +438,7 @@ Do not build yet:
 - Melody generation.
 - Raw MIDI binary generation by an LLM.
 - Full song generation.
+- Near-term Lyria 3 drum audio generation.
 - Non-drum Lyria 3 generation.
 - Real-time plugin features.
 - Complex audio mastering.
@@ -445,7 +452,7 @@ This roadmap demonstrates practical AI engineering:
 - AI authors structured musical events.
 - The app validates unsafe AI output.
 - The app writes reliable MIDI files.
-- Drum output becomes a usable producer asset package.
+- Drum output becomes a usable multi-file MIDI producer asset package.
 - Dataset work prepares for retrieval and ML without premature model training.
 
 The key portfolio story is that Vibe Drop AI turns creative AI output into reliable DAW-ready assets through validation, packaging, and deterministic export.
@@ -458,6 +465,6 @@ The key portfolio story is that Vibe Drop AI turns creative AI output into relia
 4. Validate and render that event plan to MIDI.
 5. Add AI prompt-to-event-plan generation.
 6. Add chord quality validation and repair.
-7. Define the drum-loop package format.
-8. Add Lyria 3 drum-loop master generation through Gemini API `generateContent`.
-9. Add drum-loop stem packaging or separation later.
+7. Define the drum MIDI package format.
+8. Add Gemini prompt-to-drum-event-plan generation, borrowing from chord generation.
+9. Render kick, snare, hi-hats, and percussion as separate MIDI files with shared loop metadata.
