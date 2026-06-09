@@ -21,3 +21,6 @@ Thumbs.db
 output/*.mid
 output/*.json
 !output/.gitkeep
+
+# Agents.md
+AGENTS.md
